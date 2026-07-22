@@ -6,7 +6,7 @@ import { NodeInspector } from './canvas/NodeInspector';
 
 export function App() {
   return (
-    <div className="w-screen h-screen flex flex-col bg-dark-900 overflow-hidden select-none">
+    <div className="w-screen h-screen flex flex-col bg-dark-900 overflow-hidden select-none relative">
       <Header />
       <div className="flex-1 flex overflow-hidden relative">
         <Sidebar />

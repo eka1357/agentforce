@@ -5,13 +5,25 @@ export const useExecutionStore = create((set, get) => ({
   isExecuting: false,
   runStatus: 'idle',
   nodeStates: {},
+  traceEvents: [],
+  isDrawerOpen: false,
+  selectedNodeOutputId: null,
+
+  toggleDrawer: (open) => {
+    set({ isDrawerOpen: open !== undefined ? open : !get().isDrawerOpen });
+  },
+
+  setSelectedNodeOutputId: (id) => {
+    set({ selectedNodeOutputId: id, isDrawerOpen: true });
+  },
 
   resetExecution: () => {
     set({
       runId: null,
       isExecuting: false,
       runStatus: 'idle',
-      nodeStates: {}
+      nodeStates: {},
+      traceEvents: []
     });
   },
 
@@ -34,9 +46,21 @@ export const useExecutionStore = create((set, get) => ({
     });
   },
 
+  addTraceEvent: (event) => {
+    set({
+      traceEvents: [
+        ...get().traceEvents,
+        {
+          timestamp: new Date().toLocaleTimeString(),
+          ...event
+        }
+      ]
+    });
+  },
+
   triggerRun: async (workflowId, graphJson) => {
     get().resetExecution();
-    set({ isExecuting: true, runStatus: 'running' });
+    set({ isExecuting: true, runStatus: 'running', isDrawerOpen: true });
 
     try {
       const res = await fetch(`/api/workflows/${workflowId}/run`, {
@@ -53,6 +77,13 @@ export const useExecutionStore = create((set, get) => ({
       const runId = data.run_id;
       set({ runId });
 
+      get().addTraceEvent({
+        type: 'run_start',
+        nodeId: 'system',
+        nodeLabel: 'Pipeline Executor',
+        payload: { message: `Execution initialized for run ${runId}` }
+      });
+
       // Connect to WebSocket stream
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${wsProtocol}//${window.location.host}/ws/execution/${runId}`;
@@ -67,6 +98,13 @@ export const useExecutionStore = create((set, get) => ({
           const msg = JSON.parse(evt.data);
           const { type, payload } = msg;
           const nodeId = payload?.node_id;
+
+          // Record event in timeline trace
+          get().addTraceEvent({
+            type,
+            nodeId: nodeId || 'system',
+            payload
+          });
 
           if (type === 'start' && nodeId) {
             get().setNodeState(nodeId, { status: 'running', streamedText: '', error: null });
@@ -87,7 +125,12 @@ export const useExecutionStore = create((set, get) => ({
               toolTrace: { ...currentTrace, result: payload.result }
             });
           } else if (type === 'end' && nodeId) {
-            get().setNodeState(nodeId, { status: 'done' });
+            get().setNodeState(nodeId, {
+              status: 'done',
+              streamedText: payload.output || get().nodeStates[nodeId]?.streamedText
+            });
+            // Automatically select final node for inspection
+            set({ selectedNodeOutputId: nodeId });
           } else if (type === 'error' && nodeId) {
             get().setNodeState(nodeId, { status: 'error', error: payload.error });
           } else if (type === 'run_end') {

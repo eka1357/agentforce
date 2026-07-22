@@ -13,6 +13,7 @@ load_dotenv()
 
 from backend.models.database import init_db
 from backend.api.workflows import workflows_bp
+from backend.api.mcp import mcp_bp
 from backend.orchestrator.stream import stream_manager
 
 app = Flask(__name__)
@@ -24,6 +25,7 @@ init_db()
 
 # Register REST Blueprints
 app.register_blueprint(workflows_bp)
+app.register_blueprint(mcp_bp)
 
 @sock.route('/ws/execution/<run_id>')
 def execution_socket(ws, run_id):

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '../store/useWorkflowStore';
 import { useExecutionStore } from '../execution/useExecutionStore';
-import { Save, FolderOpen, Play, Trash2, Sparkles, Layers, CheckCircle2, Loader2, Zap } from 'lucide-react';
+import { Save, FolderOpen, Play, Trash2, Sparkles, Layers, CheckCircle2, Loader2, Zap, Wrench } from 'lucide-react';
 
 export const Header = () => {
   const {
@@ -66,21 +66,30 @@ export const Header = () => {
       {/* Center: Template & Load Quick Selectors */}
       <div className="flex items-center gap-2">
         <button
+          onClick={() => loadTemplate('company-research')}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-brand-600/20 to-brand-purple/20 text-brand-purple border border-brand-500/30 hover:border-brand-500 transition-all shadow-sm"
+          title="Load Company Research Swarm Template"
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Research Swarm</span>
+        </button>
+
+        <button
+          onClick={() => loadTemplate('mcp-tool')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all"
+          title="Load Agent + MCP Tool Pipeline"
+        >
+          <Wrench className="w-3.5 h-3.5" />
+          <span>MCP Tool Pipeline</span>
+        </button>
+
+        <button
           onClick={() => loadTemplate('simple-linear')}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
           title="Load 2-Node Linear Pipeline"
         >
           <Zap className="w-3.5 h-3.5" />
           <span>2-Node Linear</span>
-        </button>
-
-        <button
-          onClick={() => loadTemplate('company-research')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-500/10 text-brand-purple border border-brand-500/20 hover:bg-brand-500/20 transition-all"
-          title="Load Company Research Swarm Template"
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span>Research Swarm</span>
         </button>
 
         <div className="relative">
@@ -161,12 +170,12 @@ export const Header = () => {
           {isExecuting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin text-white" />
-              <span>Executing DAG...</span>
+              <span>Executing Swarm...</span>
             </>
           ) : (
             <>
               <Play className="w-4 h-4 fill-current" />
-              <span>Execute Graph</span>
+              <span>Execute Swarm</span>
             </>
           )}
         </button>

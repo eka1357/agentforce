@@ -1,7 +1,8 @@
 import React, { memo, useRef, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Bot, Cpu, Sparkles, Loader2, CheckCircle2, AlertTriangle, Terminal } from 'lucide-react';
+import { Bot, Cpu, Sparkles, Loader2, CheckCircle2, AlertTriangle, Terminal, Maximize2 } from 'lucide-react';
 import { useExecutionStore } from '../execution/useExecutionStore';
+import { useWorkflowStore } from '../store/useWorkflowStore';
 
 const providerColors = {
   anthropic: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
@@ -20,6 +21,7 @@ export const AgentNode = memo(({ id, data, selected }) => {
   const provider = config?.model_provider || 'anthropic';
   const modelName = config?.model_name || 'claude-3-5-sonnet';
 
+  const { expandNodeOutput } = useWorkflowStore();
   const nodeExecutionState = useExecutionStore((state) => state.nodeStates[id]);
   const status = nodeExecutionState?.status || 'idle';
   const streamedText = nodeExecutionState?.streamedText || '';
@@ -33,9 +35,14 @@ export const AgentNode = memo(({ id, data, selected }) => {
     }
   }, [streamedText]);
 
+  const handleExpand = (e) => {
+    e.stopPropagation();
+    expandNodeOutput(id);
+  };
+
   return (
     <div
-      className={`relative group min-w-[260px] max-w-[320px] rounded-xl border bg-dark-800/95 backdrop-blur-md p-4 transition-all duration-200 shadow-xl ${
+      className={`relative group min-w-[270px] max-w-[340px] rounded-xl border bg-dark-800/95 backdrop-blur-md p-4 transition-all duration-200 shadow-xl ${
         status === 'running'
           ? 'border-brand-500 ring-2 ring-brand-500/50 shadow-brand-500/20 animate-pulse-border'
           : status === 'done'
@@ -93,15 +100,26 @@ export const AgentNode = memo(({ id, data, selected }) => {
         )}
       </div>
 
-      {/* Live Stream Output Box */}
+      {/* Live Stream Output Box with nowheel nodrag classes for scrolling */}
       {(streamedText || status === 'running') && (
         <div className="mt-2.5 pt-2 border-t border-white/10">
-          <div className="flex items-center gap-1.5 text-[10px] text-brand-cyan font-mono mb-1">
-            <Terminal className="w-3 h-3" /> Live Output Stream:
+          <div className="flex items-center justify-between text-[10px] text-brand-cyan font-mono mb-1">
+            <span className="flex items-center gap-1">
+              <Terminal className="w-3 h-3" /> Output Stream:
+            </span>
+            <button
+              onClick={handleExpand}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand-500/20 hover:bg-brand-500/40 text-brand-cyan transition-all font-semibold"
+              title="Expand right side drawer"
+            >
+              <Maximize2 className="w-3 h-3" /> Expand Right
+            </button>
           </div>
+
           <div
             ref={outputRef}
-            className="max-h-32 overflow-y-auto bg-dark-900 p-2 rounded-lg text-[11px] font-mono text-gray-200 border border-white/10 leading-relaxed space-y-1"
+            onClick={handleExpand}
+            className="nowheel nodrag max-h-36 overflow-y-auto bg-dark-900 p-2.5 rounded-lg text-[11px] font-mono text-gray-200 border border-white/10 leading-relaxed cursor-pointer hover:border-brand-500/50 transition-all select-text"
           >
             <span>{streamedText}</span>
             {status === 'running' && <span className="inline-block w-2 h-3 bg-brand-cyan animate-pulse ml-0.5" />}
@@ -126,7 +144,7 @@ export const AgentNode = memo(({ id, data, selected }) => {
         {status === 'idle' && <span className="text-gray-400 font-medium">⚪ Idle</span>}
         {status === 'running' && (
           <span className="text-amber-400 font-semibold flex items-center gap-1">
-            <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Running...
+            <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Streaming...
           </span>
         )}
         {status === 'done' && (

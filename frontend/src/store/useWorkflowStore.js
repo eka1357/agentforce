@@ -3,16 +3,26 @@ import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import { saveWorkflow as saveWorkflowApi, fetchWorkflow as fetchWorkflowApi, fetchWorkflows as fetchWorkflowsApi } from '../api/client';
 import { COMPANY_RESEARCH_TEMPLATE } from '../templates/companyResearchSwarm';
 import { SIMPLE_LINEAR_TEMPLATE } from '../templates/simpleLinearPipeline';
+import { MCP_TOOL_PIPELINE_TEMPLATE } from '../templates/mcpToolPipeline';
 
 export const useWorkflowStore = create((set, get) => ({
-  workflowId: 'simple-linear-pipeline',
-  workflowName: 'Simple 2-Node Linear Pipeline',
-  workflowDescription: 'Sequential 2-agent pipeline: Writer -> Editor',
-  nodes: SIMPLE_LINEAR_TEMPLATE.graph_json.nodes,
-  edges: SIMPLE_LINEAR_TEMPLATE.graph_json.edges,
+  workflowId: 'company-research-swarm',
+  workflowName: 'Company Research Agent Swarm',
+  workflowDescription: 'Multi-agent swarm analyzing financials, news, competitors, and hiring trends.',
+  nodes: COMPANY_RESEARCH_TEMPLATE.graph_json.nodes,
+  edges: COMPANY_RESEARCH_TEMPLATE.graph_json.edges,
   selectedNodeId: null,
+  isInspectorExpanded: false,
   isSaving: false,
   savedWorkflows: [],
+
+  toggleInspectorExpanded: (expand) => {
+    set({ isInspectorExpanded: expand !== undefined ? expand : !get().isInspectorExpanded });
+  },
+
+  expandNodeOutput: (id) => {
+    set({ selectedNodeId: id, isInspectorExpanded: true });
+  },
 
   // React Flow Handlers
   onNodesChange: (changes) => {
@@ -50,13 +60,13 @@ export const useWorkflowStore = create((set, get) => ({
     const defaultConfig = {
       agent: {
         system_prompt: 'You are a specialized agent.',
-        model_provider: 'anthropic',
-        model_name: 'claude-3-5-sonnet-20241022',
+        model_provider: 'openai',
+        model_name: 'openai/gpt-oss-20b:free',
         temperature: 0.7
       },
       tool: {
-        mcp_server: 'filesystem',
-        tool_name: 'read_file',
+        mcp_server: 'web_search',
+        tool_name: 'fetch_job_postings',
         tool_args: {}
       },
       condition: {
@@ -140,9 +150,11 @@ export const useWorkflowStore = create((set, get) => ({
 
   // Templates
   loadTemplate: (templateKey) => {
-    let tpl = SIMPLE_LINEAR_TEMPLATE;
-    if (templateKey === 'company-research') {
-      tpl = COMPANY_RESEARCH_TEMPLATE;
+    let tpl = COMPANY_RESEARCH_TEMPLATE;
+    if (templateKey === 'simple-linear') {
+      tpl = SIMPLE_LINEAR_TEMPLATE;
+    } else if (templateKey === 'mcp-tool') {
+      tpl = MCP_TOOL_PIPELINE_TEMPLATE;
     }
 
     set({

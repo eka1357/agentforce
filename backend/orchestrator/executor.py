@@ -3,6 +3,7 @@ import json
 from typing import Dict, Any, Callable, List, Optional
 from backend.orchestrator.graph import GraphDefinition, GraphNode
 from backend.agents.base_agent import BaseAgent
+from backend.mcp.mcp_client import mcp_client_manager
 
 class GraphExecutor:
     def __init__(self, graph_data: Dict[str, Any], event_callback: Callable[[str, Dict[str, Any]], Any]):
@@ -26,7 +27,6 @@ class GraphExecutor:
         """Walk the DAG and run nodes respecting dependencies and concurrent branches."""
         await self._emit_event("run_start", {"node_count": len(self.graph.nodes)})
 
-        # Spawn execution tasks for all nodes
         tasks = [asyncio.create_task(self._run_node(node)) for node in self.graph.nodes]
         await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -36,26 +36,22 @@ class GraphExecutor:
         await self._emit_event("run_end", {
             "status": status,
             "failed_nodes": failed_nodes,
-            "outputs": {k: str(v)[:200] for k, v in self.node_outputs.items()}
+            "outputs": {k: str(v)[:500] for k, v in self.node_outputs.items()}
         })
 
     async def _run_node(self, node: GraphNode):
-        # 1. Wait for incoming dependencies
         incoming_edges = self.graph.get_incoming_edges(node.id)
         parent_ids = [edge.source for edge in incoming_edges]
 
-        # Wait for each parent node's completion event
         for pid in parent_ids:
             if pid in self.node_events:
                 await self.node_events[pid].wait()
 
-        # Check if node was marked as skipped by a parent condition
         if self.node_states[node.id] == "skipped":
             await self._emit_event("skip", {"node_id": node.id, "reason": "Branch not taken"})
             self.node_events[node.id].set()
             return
 
-        # Check if any non-optional parent failed
         parent_failed = any(self.node_states.get(pid) == "error" for pid in parent_ids)
         if parent_failed:
             self.node_states[node.id] = "error"
@@ -66,7 +62,6 @@ class GraphExecutor:
             self.node_events[node.id].set()
             return
 
-        # 2. Gather upstream outputs
         upstream_inputs = {}
         for edge in incoming_edges:
             parent_node = self.graph.get_node(edge.source)
@@ -74,7 +69,6 @@ class GraphExecutor:
             if edge.source in self.node_outputs:
                 upstream_inputs[parent_label] = self.node_outputs[edge.source]
 
-        # 3. Execute node based on type
         self.node_states[node.id] = "running"
         try:
             if node.type == "agent":
@@ -119,9 +113,19 @@ class GraphExecutor:
 
     async def _execute_tool_node(self, node: GraphNode, upstream_inputs: Dict[str, Any]):
         cfg = node.data.config
-        server = cfg.mcp_server or "system"
-        tool_name = cfg.tool_name or "execute"
-        tool_args = cfg.tool_args or {}
+        server = cfg.mcp_server or "filesystem"
+        tool_name = cfg.tool_name or "read_file"
+        tool_args = dict(cfg.tool_args or {})
+
+        # Dynamically extract upstream agent output to override search query / path if available
+        if upstream_inputs:
+            upstream_text = "\n".join(str(v).strip() for v in upstream_inputs.values() if v)
+            if upstream_text:
+                if "query" in tool_name or "search" in tool_name or "fetch" in tool_name:
+                    tool_args["query"] = upstream_text.replace("\n", " ")[:150]
+                elif "file" in tool_name or "directory" in tool_name:
+                    if not tool_args.get("path"):
+                        tool_args["path"] = "."
 
         await self._emit_event("start", {"node_id": node.id, "label": node.data.label})
         await self._emit_event("tool_call", {
@@ -131,9 +135,8 @@ class GraphExecutor:
             "args": tool_args
         })
 
-        # Mock result for Milestone 2 (Real MCP Client connects in Milestone 3)
-        await asyncio.sleep(0.5)
-        tool_result = f"[MCP Tool Output ({server}/{tool_name})] Successfully queried parameters with args: {json.dumps(tool_args)}"
+        # Real MCP Tool Execution with dynamic parameters
+        tool_result = await mcp_client_manager.call_tool(server, tool_name, tool_args)
 
         await self._emit_event("tool_result", {
             "node_id": node.id,
@@ -152,7 +155,6 @@ class GraphExecutor:
 
         await self._emit_event("start", {"node_id": node.id, "label": node.data.label})
 
-        # Evaluate condition safely against upstream string content
         combined_text = "\n".join(str(v) for v in upstream_inputs.values())
         is_true = True
         if "fail" in expression.lower() or "error" in expression.lower():
@@ -160,7 +162,6 @@ class GraphExecutor:
 
         chosen_handle = "true" if is_true else "false"
 
-        # Mark non-chosen outgoing branch edges as skipped
         outgoing_edges = self.graph.get_outgoing_edges(node.id)
         for edge in outgoing_edges:
             if edge.sourceHandle and edge.sourceHandle != chosen_handle:
@@ -185,7 +186,7 @@ class GraphExecutor:
             merged_output = "\n\n---\n\n".join(
                 f"### {label}\n{val}" for label, val in upstream_inputs.items()
             )
-        else:  # default combine_dict / wait_all
+        else:
             merged_output = json.dumps(upstream_inputs, indent=2)
 
         await self._emit_event("end", {
