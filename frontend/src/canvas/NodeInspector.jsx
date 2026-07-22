@@ -3,11 +3,13 @@ import { useWorkflowStore } from '../store/useWorkflowStore';
 import { useExecutionStore } from '../execution/useExecutionStore';
 import { X, Trash2, Copy, Sliders, Bot, Wrench, GitFork, Layers, Cpu, Sparkles, FileText, Download, Check, Maximize2, Minimize2, AlignLeft, Hash, Activity, Terminal, ListFilter } from 'lucide-react';
 
-const FREE_MODEL_PRESETS = [
-  { label: 'Llama 3.3 70B', id: 'meta-llama/llama-3.3-70b-instruct:free', provider: 'anthropic' },
-  { label: 'GPT-OSS 20B', id: 'openai/gpt-oss-20b:free', provider: 'openai' },
+const MODEL_PRESETS = [
+  { label: 'Claude 3.5 Sonnet', id: 'anthropic/claude-3.5-sonnet', provider: 'anthropic' },
+  { label: 'GPT-4o', id: 'openai/gpt-4o', provider: 'openai' },
   { label: 'Gemini 2.0 Flash', id: 'google/gemini-2.0-flash-exp:free', provider: 'gemini' },
   { label: 'DeepSeek R1', id: 'deepseek/deepseek-r1:free', provider: 'openai' },
+  { label: 'Llama 3.3 70B', id: 'meta-llama/llama-3.3-70b-instruct:free', provider: 'anthropic' },
+  { label: 'Qwen 2.5 72B', id: 'qwen/qwen-2.5-72b-instruct', provider: 'openai' },
 ];
 
 const PROMPT_SNIPPET_PRESETS = [
@@ -180,13 +182,13 @@ export const NodeInspector = () => {
                 </div>
               </div>
 
-              {/* 1-Click Free Model Quick Selector */}
+              {/* 1-Click Model Quick Selector */}
               <div>
                 <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-                  Free Model Presets
+                  Model Presets
                 </label>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {FREE_MODEL_PRESETS.map((preset) => (
+                  {MODEL_PRESETS.map((preset) => (
                     <button
                       key={preset.id}
                       onClick={() => {
@@ -195,7 +197,7 @@ export const NodeInspector = () => {
                       }}
                       className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all text-left truncate ${
                         config.model_name === preset.id
-                          ? 'bg-brand-500/20 text-brand-cyan border-brand-500'
+                          ? 'bg-brand-500/20 text-brand-cyan border-brand-500 shadow-sm'
                           : 'bg-dark-900 text-gray-300 border-white/10 hover:border-brand-500/50'
                       }`}
                     >
