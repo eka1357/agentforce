@@ -62,3 +62,43 @@ async def test_linear_executor():
   assert "start" in event_types
   assert "token" in event_types
   assert "end" in event_types
+
+@pytest.mark.asyncio
+async def test_human_approval_node_executor():
+  graph_data = {
+    "nodes": [
+      {
+        "id": "h1",
+        "type": "human",
+        "position": {"x": 0, "y": 0},
+        "data": {
+          "label": "Human Approver",
+          "type": "human",
+          "config": {"approval_prompt": "Confirm execution?"}
+        }
+      }
+    ],
+    "edges": []
+  }
+
+  events = []
+  async def mock_callback(event_type, payload):
+    events.append((event_type, payload))
+
+  executor = GraphExecutor(graph_data, mock_callback, run_id="test-run-1")
+  
+  # Start execution in background task since human node pauses
+  task = asyncio.create_task(executor.execute())
+  await asyncio.sleep(0.1)
+
+  assert executor.node_states["h1"] == "paused"
+  event_types = [e[0] for e in events]
+  assert "pause" in event_types
+
+  # Resume human node
+  resumed = executor.resume_human_node("h1", action="approve", feedback="Looks good")
+  assert resumed is True
+
+  await task
+  assert executor.node_states["h1"] == "done"
+  assert "Human Approved" in executor.node_outputs["h1"]

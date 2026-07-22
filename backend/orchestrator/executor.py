@@ -5,17 +5,25 @@ from backend.orchestrator.graph import GraphDefinition, GraphNode
 from backend.agents.base_agent import BaseAgent
 from backend.mcp.mcp_client import mcp_client_manager
 
+active_executors: Dict[str, "GraphExecutor"] = {}
+
 class GraphExecutor:
-    def __init__(self, graph_data: Dict[str, Any], event_callback: Callable[[str, Dict[str, Any]], Any]):
+    def __init__(self, graph_data: Dict[str, Any], event_callback: Callable[[str, Dict[str, Any]], Any], run_id: Optional[str] = None):
         if isinstance(graph_data, GraphDefinition):
             self.graph = graph_data
         else:
             self.graph = GraphDefinition(**graph_data)
 
         self.event_callback = event_callback
+        self.run_id = run_id
         self.node_outputs: Dict[str, Any] = {}
         self.node_states: Dict[str, str] = {node.id: "idle" for node in self.graph.nodes}
         self.node_events: Dict[str, asyncio.Event] = {node.id: asyncio.Event() for node in self.graph.nodes}
+        self.human_events: Dict[str, asyncio.Event] = {}
+        self.human_responses: Dict[str, Dict[str, Any]] = {}
+
+        if self.run_id:
+            active_executors[self.run_id] = self
 
     async def _emit_event(self, event_type: str, payload: Dict[str, Any]):
         if asyncio.iscoroutinefunction(self.event_callback):
@@ -79,6 +87,8 @@ class GraphExecutor:
                 await self._execute_condition_node(node, upstream_inputs)
             elif node.type == "merge":
                 await self._execute_merge_node(node, upstream_inputs)
+            elif node.type == "human":
+                await self._execute_human_node(node, upstream_inputs)
             else:
                 raise ValueError(f"Unknown node type: {node.type}")
 
@@ -198,3 +208,47 @@ class GraphExecutor:
         })
 
         self.node_outputs[node.id] = merged_output
+
+    async def _execute_human_node(self, node: GraphNode, upstream_inputs: Dict[str, Any]):
+        cfg = node.data.config
+        prompt = cfg.approval_prompt or "Review upstream data and approve or provide feedback."
+
+        self.node_states[node.id] = "paused"
+        await self._emit_event("pause", {
+            "node_id": node.id,
+            "label": node.data.label,
+            "prompt": prompt,
+            "upstream_inputs": upstream_inputs
+        })
+
+        event = asyncio.Event()
+        self.human_events[node.id] = event
+
+        # Suspend until user approves or rejects via API/WS
+        await event.wait()
+
+        response = self.human_responses.get(node.id, {})
+        action = response.get("action", "approve")
+        feedback = response.get("feedback", "").strip()
+
+        if action == "reject":
+            err_msg = f"Human Approval Rejected: {feedback if feedback else 'No feedback provided'}"
+            self.node_states[node.id] = "error"
+            await self._emit_event("error", {"node_id": node.id, "error": err_msg})
+            raise ValueError(err_msg)
+
+        output_msg = f"✅ **Human Approved**\n\n**Feedback/Directives:** {feedback}" if feedback else "✅ **Human Approved** (No additional feedback provided)"
+
+        await self._emit_event("end", {
+            "node_id": node.id,
+            "output": output_msg
+        })
+        self.node_outputs[node.id] = output_msg
+
+    def resume_human_node(self, node_id: str, action: str = "approve", feedback: str = ""):
+        """Resume a paused human approval node with user action and feedback."""
+        if node_id in self.human_events:
+            self.human_responses[node_id] = {"action": action, "feedback": feedback}
+            self.human_events[node_id].set()
+            return True
+        return False

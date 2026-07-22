@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '../store/useWorkflowStore';
 import { useExecutionStore } from '../execution/useExecutionStore';
-import { Save, FolderOpen, Play, Trash2, Sparkles, Layers, CheckCircle2, Loader2, Zap, Wrench } from 'lucide-react';
+import { Save, FolderOpen, Play, Trash2, Sparkles, Layers, CheckCircle2, Loader2, Zap, Wrench, History } from 'lucide-react';
+import { RunHistoryDrawer } from './RunHistoryDrawer';
 
 export const Header = () => {
   const {
@@ -24,6 +25,7 @@ export const Header = () => {
 
   const [showWorkflowsMenu, setShowWorkflowsMenu] = useState(false);
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   useEffect(() => {
     loadWorkflowsList();
@@ -139,8 +141,17 @@ export const Header = () => {
         </button>
       </div>
 
-      {/* Right: Actions (Save & Run) */}
+      {/* Right: Actions (Save, History & Run) */}
       <div className="flex items-center gap-3">
+        <button
+          onClick={() => setIsHistoryOpen(true)}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-dark-700 text-gray-200 border border-white/10 hover:bg-dark-600 hover:border-brand-500/50 transition-all shadow-md active:scale-95 cursor-pointer"
+          title="View Past Execution Runs"
+        >
+          <History className="w-4 h-4 text-indigo-400" />
+          <span>History</span>
+        </button>
+
         <button
           onClick={handleSave}
           disabled={isSaving}
@@ -180,6 +191,9 @@ export const Header = () => {
           )}
         </button>
       </div>
+
+      {/* Persistent Run History Drawer */}
+      <RunHistoryDrawer isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
     </header>
   );
 };

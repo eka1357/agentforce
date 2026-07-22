@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '../store/useWorkflowStore';
 import { useExecutionStore } from '../execution/useExecutionStore';
-import { X, Trash2, Copy, Sliders, Bot, Wrench, GitFork, Layers, Cpu, Sparkles, FileText, Download, Check, Maximize2, Minimize2, AlignLeft, Hash } from 'lucide-react';
+import { X, Trash2, Copy, Sliders, Bot, Wrench, GitFork, Layers, Cpu, Sparkles, FileText, Download, Check, Maximize2, Minimize2, AlignLeft, Hash, Activity, Terminal, ListFilter } from 'lucide-react';
+
+const FREE_MODEL_PRESETS = [
+  { label: 'Llama 3.3 70B', id: 'meta-llama/llama-3.3-70b-instruct:free', provider: 'anthropic' },
+  { label: 'GPT-OSS 20B', id: 'openai/gpt-oss-20b:free', provider: 'openai' },
+  { label: 'Gemini 2.0 Flash', id: 'google/gemini-2.0-flash-exp:free', provider: 'gemini' },
+  { label: 'DeepSeek R1', id: 'deepseek/deepseek-r1:free', provider: 'openai' },
+];
+
+const PROMPT_SNIPPET_PRESETS = [
+  { label: 'Financial Analyst', prompt: 'You analyze company balance sheets, revenue growth, profit margins, and valuation multiples. Output a clear financial summary.' },
+  { label: 'News Intelligence', prompt: 'You gather recent media coverage, headlines, press releases, and market sentiment.' },
+  { label: 'Competitor Intelligence', prompt: 'You map out key market competitors, market share dynamics, and strategic positioning.' },
+  { label: 'Executive Summarizer', prompt: 'Synthesize all incoming intelligence streams into a single, structured executive brief with actionable recommendations.' },
+];
 
 export const NodeInspector = () => {
   const {
@@ -15,14 +29,15 @@ export const NodeInspector = () => {
     toggleInspectorExpanded
   } = useWorkflowStore();
 
-  const { nodeStates } = useExecutionStore();
+  const { nodeStates, traceEvents } = useExecutionStore();
 
-  const [activeTab, setActiveTab] = useState('config'); // 'config' | 'output'
+  const [activeTab, setActiveTab] = useState('config'); // 'config' | 'output' | 'trace'
   const [copied, setCopied] = useState(false);
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
   const nodeState = selectedNode ? (nodeStates[selectedNode.id] || {}) : {};
   const outputText = nodeState.streamedText || nodeState.toolTrace?.result || '';
+  const nodeEvents = selectedNode ? traceEvents.filter((e) => e.payload?.node_id === selectedNode.id) : [];
 
   // Auto-switch to output tab when selecting a node that has output
   useEffect(() => {
@@ -99,11 +114,11 @@ export const NodeInspector = () => {
         </div>
       </div>
 
-      {/* Tabs: Config vs Output */}
-      <div className="grid grid-cols-2 gap-1 p-1 bg-dark-900 rounded-xl border border-white/5 mb-4">
+      {/* 3 Tabs: Config | Output | Trace Log */}
+      <div className="grid grid-cols-3 gap-1 p-1 bg-dark-900 rounded-xl border border-white/5 mb-4">
         <button
           onClick={() => setActiveTab('config')}
-          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
             activeTab === 'config'
               ? 'bg-brand-600 text-white shadow-md'
               : 'text-gray-400 hover:text-gray-200'
@@ -115,15 +130,27 @@ export const NodeInspector = () => {
 
         <button
           onClick={() => setActiveTab('output')}
-          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all relative ${
+          className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold transition-all relative ${
             activeTab === 'output'
               ? 'bg-brand-600 text-white shadow-md'
               : 'text-gray-400 hover:text-gray-200'
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
-          <span>Live Output</span>
-          {outputText && <span className="w-2 h-2 rounded-full bg-emerald-400 absolute top-1.5 right-2" />}
+          <span>Output</span>
+          {outputText && <span className="w-2 h-2 rounded-full bg-emerald-400 absolute top-1 right-1.5" />}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('trace')}
+          className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold transition-all relative ${
+            activeTab === 'trace'
+              ? 'bg-brand-600 text-white shadow-md'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>Trace ({nodeEvents.length})</span>
         </button>
       </div>
 
@@ -153,25 +180,61 @@ export const NodeInspector = () => {
                 </div>
               </div>
 
+              {/* 1-Click Free Model Quick Selector */}
               <div>
-                <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                  Model Provider
+                <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
+                  Free Model Presets
                 </label>
-                <select
-                  value={config.model_provider || 'openai'}
-                  onChange={(e) => handleConfigChange('model_provider', e.target.value)}
-                  className="w-full bg-dark-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-brand-500"
-                >
-                  <option value="openai">OpenAI (gpt-oss-20b)</option>
-                  <option value="anthropic">Anthropic (llama-3.3-70b)</option>
-                  <option value="gemini">Google Gemini (2.0-flash)</option>
-                </select>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {FREE_MODEL_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => {
+                        handleConfigChange('model_name', preset.id);
+                        handleConfigChange('model_provider', preset.provider);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all text-left truncate ${
+                        config.model_name === preset.id
+                          ? 'bg-brand-500/20 text-brand-cyan border-brand-500'
+                          : 'bg-dark-900 text-gray-300 border-white/10 hover:border-brand-500/50'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
                 <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                  System Prompt
+                  Model ID
                 </label>
+                <input
+                  type="text"
+                  value={config.model_name || 'openai/gpt-oss-20b:free'}
+                  onChange={(e) => handleConfigChange('model_name', e.target.value)}
+                  className="w-full bg-dark-900 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-brand-cyan focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              {/* Prompt Snippet Presets */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                    System Prompt
+                  </label>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) handleConfigChange('system_prompt', e.target.value);
+                    }}
+                    className="bg-dark-900 border border-white/10 rounded text-[10px] text-brand-cyan px-2 py-0.5"
+                  >
+                    <option value="">Insert Prompt Preset...</option>
+                    {PROMPT_SNIPPET_PRESETS.map((p) => (
+                      <option key={p.label} value={p.prompt}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
                 <textarea
                   rows={6}
                   value={config.system_prompt || ''}
@@ -338,6 +401,40 @@ export const NodeInspector = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* TAB 3: TRACE LOG FEED */}
+      {activeTab === 'trace' && (
+        <div className="flex-1 flex flex-col space-y-2 overflow-y-auto font-mono text-[11px]">
+          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-semibold flex items-center gap-1">
+            <Terminal className="w-3.5 h-3.5 text-brand-cyan" /> WebSocket Stream Trace ({nodeEvents.length} events)
+          </div>
+
+          {nodeEvents.length === 0 ? (
+            <div className="p-4 text-center text-gray-400 italic bg-dark-900 rounded-xl border border-white/5">
+              No trace events recorded for this node yet.
+            </div>
+          ) : (
+            nodeEvents.map((evt, idx) => (
+              <div key={idx} className="p-2.5 rounded-lg bg-dark-900 border border-white/5 space-y-1">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className={`font-bold px-1.5 py-0.5 rounded ${
+                    evt.type === 'start' ? 'bg-amber-500/20 text-amber-400' :
+                    evt.type === 'end' ? 'bg-emerald-500/20 text-emerald-400' :
+                    evt.type === 'error' ? 'bg-rose-500/20 text-rose-400' :
+                    'bg-brand-500/20 text-brand-cyan'
+                  }`}>
+                    {evt.type.toUpperCase()}
+                  </span>
+                  <span className="text-gray-400">{evt.timestamp}</span>
+                </div>
+                <div className="text-gray-300 text-[10px] truncate">
+                  {evt.type === 'token' ? `Token chunk: "${evt.payload?.token}"` : JSON.stringify(evt.payload || {})}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 

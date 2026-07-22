@@ -26,3 +26,27 @@ def test_graph_validation():
   assert len(graph.nodes) == 1
   assert graph.nodes[0].id == "node-1"
   assert graph.nodes[0].data.config.model_provider == "anthropic"
+
+def test_human_node_validation():
+  sample_data = {
+    "nodes": [
+      {
+        "id": "human-1",
+        "type": "human",
+        "position": {"x": 200, "y": 200},
+        "data": {
+          "label": "Human Checkpoint",
+          "type": "human",
+          "config": {
+            "approval_prompt": "Approve this report?"
+          }
+        }
+      }
+    ],
+    "edges": []
+  }
+
+  graph = GraphDefinition(**sample_data)
+  assert len(graph.nodes) == 1
+  assert graph.nodes[0].type == "human"
+  assert graph.nodes[0].data.config.approval_prompt == "Approve this report?"

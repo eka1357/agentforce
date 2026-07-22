@@ -30,10 +30,12 @@ class Run(Base):
     __tablename__ = "runs"
 
     id = Column(String(36), primary_key=True)
-    workflow_id = Column(String(36), ForeignKey("workflows.id"), nullable=False)
-    status = Column(String(50), nullable=False, default="idle")  # idle, running, completed, failed, cancelled
+    workflow_id = Column(String(36), ForeignKey("workflows.id"), nullable=True)
+    status = Column(String(50), nullable=False, default="idle")  # idle, running, completed, failed, paused
     started_at = Column(DateTime, default=datetime.utcnow)
     finished_at = Column(DateTime, nullable=True)
+    outputs_json = Column(Text, nullable=True, default="{}")
+    logs_json = Column(Text, nullable=True, default="[]")
 
     workflow = relationship("Workflow", back_populates="runs")
 
@@ -44,4 +46,6 @@ class Run(Base):
             "status": self.status,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "finished_at": self.finished_at.isoformat() if self.finished_at else None,
+            "outputs": json.loads(self.outputs_json) if self.outputs_json else {},
+            "logs": json.loads(self.logs_json) if self.logs_json else [],
         }

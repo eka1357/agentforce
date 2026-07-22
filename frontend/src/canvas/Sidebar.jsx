@@ -1,6 +1,6 @@
 import React from 'react';
 import { useWorkflowStore } from '../store/useWorkflowStore';
-import { Bot, Wrench, GitFork, Layers, Plus, Info } from 'lucide-react';
+import { Bot, Wrench, GitFork, Layers, UserCheck, Plus, Info } from 'lucide-react';
 
 const nodePaletteItems = [
   {
@@ -18,6 +18,14 @@ const nodePaletteItems = [
     icon: Wrench,
     gradient: 'from-amber-500 to-orange-600',
     badge: 'MCP',
+  },
+  {
+    type: 'human',
+    label: 'Human Approval',
+    description: 'Pauses workflow execution to request human review & feedback.',
+    icon: UserCheck,
+    gradient: 'from-amber-400 to-amber-600',
+    badge: 'HITL',
   },
   {
     type: 'condition',

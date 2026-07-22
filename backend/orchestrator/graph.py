@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional, Literal
 from pydantic import BaseModel, Field
 
-NodeType = Literal["agent", "tool", "condition", "merge"]
+NodeType = Literal["agent", "tool", "condition", "merge", "human"]
 
 class NodeConfig(BaseModel):
     # Agent config
@@ -18,6 +18,10 @@ class NodeConfig(BaseModel):
     # Condition config
     expression: Optional[str] = ""
     
+    # Human Approval config
+    approval_prompt: Optional[str] = "Please review the upstream output and approve or provide feedback."
+    require_feedback: Optional[bool] = False
+
     # General / Merge config
     merge_strategy: Optional[str] = "combine_dict"
 

@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -10,16 +10,20 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useWorkflowStore } from '../store/useWorkflowStore';
+import { useExecutionStore } from '../execution/useExecutionStore';
 import { AgentNode } from '../nodes/AgentNode';
 import { ToolNode } from '../nodes/ToolNode';
 import { ConditionNode } from '../nodes/ConditionNode';
 import { MergeNode } from '../nodes/MergeNode';
+import { HumanNode } from '../nodes/HumanNode';
+import { Play, CheckCircle2, Loader2, AlertTriangle, Layers, Activity, Sparkles, Clock } from 'lucide-react';
 
 const nodeTypes = {
   agent: AgentNode,
   tool: ToolNode,
   condition: ConditionNode,
   merge: MergeNode,
+  human: HumanNode,
 };
 
 const FlowCanvas = () => {
@@ -35,6 +39,53 @@ const FlowCanvas = () => {
     addNode,
     setSelectedNodeId,
   } = useWorkflowStore();
+
+  const { isExecuting, runStatus, nodeStates } = useExecutionStore();
+
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Timer effect for execution duration
+  useEffect(() => {
+    let timer;
+    if (isExecuting) {
+      setElapsedSeconds(0);
+      timer = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isExecuting]);
+
+  // Compute execution stats
+  const totalNodes = nodes.length;
+  const completedNodes = Object.values(nodeStates).filter((s) => s.status === 'done').length;
+  const runningNodes = Object.values(nodeStates).filter((s) => s.status === 'running').length;
+  const errorNodes = Object.values(nodeStates).filter((s) => s.status === 'error').length;
+
+  // Dynamic edge styling based on execution status of source nodes
+  const dynamicEdges = edges.map((edge) => {
+    const sourceState = nodeStates[edge.source]?.status || 'idle';
+    let strokeColor = '#6366F1'; // default purple
+    let strokeWidth = 2;
+    let animated = true;
+
+    if (sourceState === 'running') {
+      strokeColor = '#F59E0B'; // glowing amber
+      strokeWidth = 3;
+    } else if (sourceState === 'done') {
+      strokeColor = '#10B981'; // emerald green
+      strokeWidth = 2.5;
+    } else if (sourceState === 'error') {
+      strokeColor = '#F43F5E'; // rose red
+      strokeWidth = 2.5;
+    }
+
+    return {
+      ...edge,
+      animated,
+      style: { stroke: strokeColor, strokeWidth }
+    };
+  });
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -67,9 +118,58 @@ const FlowCanvas = () => {
 
   return (
     <div className="w-full h-full relative" ref={reactFlowWrapper}>
+      {/* Floating Execution HUD Stats Bar */}
+      {(isExecuting || runStatus !== 'idle') && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-dark-800/90 backdrop-blur-2xl border border-white/15 px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-5 text-xs text-gray-200 font-mono animate-fade-in select-none">
+          <div className="flex items-center gap-2">
+            {isExecuting ? (
+              <span className="flex items-center gap-1.5 text-amber-400 font-semibold">
+                <Loader2 className="w-4 h-4 animate-spin" /> Executing Pipeline...
+              </span>
+            ) : runStatus === 'completed' ? (
+              <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                <CheckCircle2 className="w-4 h-4" /> Pipeline Complete
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-rose-400 font-semibold">
+                <AlertTriangle className="w-4 h-4" /> Pipeline Failed
+              </span>
+            )}
+          </div>
+
+          <div className="h-4 w-px bg-white/10" />
+
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1 text-gray-300">
+              <Layers className="w-3.5 h-3.5 text-brand-purple" />
+              Progress: <strong className="text-white">{completedNodes}/{totalNodes}</strong> Nodes
+            </span>
+
+            {runningNodes > 0 && (
+              <span className="text-amber-400">
+                ({runningNodes} Active)
+              </span>
+            )}
+
+            {errorNodes > 0 && (
+              <span className="text-rose-400">
+                ({errorNodes} Failed)
+              </span>
+            )}
+          </div>
+
+          <div className="h-4 w-px bg-white/10" />
+
+          <div className="flex items-center gap-1 text-brand-cyan">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Time: <strong>{elapsedSeconds}s</strong></span>
+          </div>
+        </div>
+      )}
+
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={dynamicEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -81,10 +181,6 @@ const FlowCanvas = () => {
         fitView
         snapToGrid
         snapGrid={[15, 15]}
-        defaultEdgeOptions={{
-          animated: true,
-          style: { stroke: '#6366F1', strokeWidth: 2 }
-        }}
       >
         <Background color="#1F2937" gap={20} size={1} />
         <Controls />

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 export const useExecutionStore = create((set, get) => ({
   runId: null,
+  currentRunId: null,
   isExecuting: false,
   runStatus: 'idle',
   nodeStates: {},
@@ -20,6 +21,7 @@ export const useExecutionStore = create((set, get) => ({
   resetExecution: () => {
     set({
       runId: null,
+      currentRunId: null,
       isExecuting: false,
       runStatus: 'idle',
       nodeStates: {},
@@ -75,7 +77,7 @@ export const useExecutionStore = create((set, get) => ({
 
       const data = await res.json();
       const runId = data.run_id;
-      set({ runId });
+      set({ runId, currentRunId: runId });
 
       get().addTraceEvent({
         type: 'run_start',
@@ -108,6 +110,10 @@ export const useExecutionStore = create((set, get) => ({
 
           if (type === 'start' && nodeId) {
             get().setNodeState(nodeId, { status: 'running', streamedText: '', error: null });
+          } else if (type === 'pause' && nodeId) {
+            get().setNodeState(nodeId, { status: 'paused', error: null });
+          } else if (type === 'resume' && nodeId) {
+            get().setNodeState(nodeId, { status: 'running' });
           } else if (type === 'token' && nodeId) {
             const currentText = get().nodeStates[nodeId]?.streamedText || '';
             get().setNodeState(nodeId, {
