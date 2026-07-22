@@ -12,7 +12,7 @@ export const COMPANY_RESEARCH_TEMPLATE = {
           label: "Financial Analyst",
           type: "agent",
           config: {
-            system_prompt: "You analyze company balance sheets, revenue growth, profit margins, and key financial ratios.",
+            system_prompt: "You are a Senior Financial Analyst. Analyze revenue trajectory, gross margins, EBITDA growth, cash flow health, and valuation multiples. Output a concise financial briefing.",
             model_provider: "anthropic",
             model_name: "meta-llama/llama-3.3-70b-instruct:free",
             temperature: 0.3
@@ -27,9 +27,9 @@ export const COMPANY_RESEARCH_TEMPLATE = {
           label: "News Intelligence",
           type: "agent",
           config: {
-            system_prompt: "You gather recent press releases, media coverage, product launches, and market sentiment.",
+            system_prompt: "You are a Media & News Intelligence Lead. Summarize recent press headlines, product launches, brand perception, and regulatory sentiment.",
             model_provider: "openai",
-            model_name: "google/gemini-2.0-flash-exp:free",
+            model_name: "openai/gpt-oss-20b:free",
             temperature: 0.5
           }
         }
@@ -42,9 +42,9 @@ export const COMPANY_RESEARCH_TEMPLATE = {
           label: "Competitor Intelligence",
           type: "agent",
           config: {
-            system_prompt: "You map out key market competitors, market share dynamics, and strategic positioning.",
+            system_prompt: "You are a Competitive Intelligence Officer. Map out key market rivals, market share shifts, defensible moats, and strategic counter-moves.",
             model_provider: "gemini",
-            model_name: "qwen/qwen-2.5-72b-instruct:free",
+            model_name: "google/gemini-2.0-flash-exp:free",
             temperature: 0.4
           }
         }
@@ -59,7 +59,7 @@ export const COMPANY_RESEARCH_TEMPLATE = {
           config: {
             mcp_server: "web_search",
             tool_name: "fetch_job_postings",
-            tool_args: { query: "open roles engineering product" }
+            tool_args: { query: "AI Agent Orchestration hiring trends engineering roles" }
           }
         }
       },
@@ -83,9 +83,9 @@ export const COMPANY_RESEARCH_TEMPLATE = {
           label: "Executive Report Writer",
           type: "agent",
           config: {
-            system_prompt: "You synthesize financial data, news, competitive intelligence, and hiring signals into a polished executive dossier.",
-            model_provider: "anthropic",
-            model_name: "meta-llama/llama-3.3-70b-instruct:free",
+            system_prompt: "You are a Principal Strategic Analyst preparing an Executive Board Dossier. You will receive 4 intelligence streams: Financials, News, Competitors, and Hiring MCP Tool.\n\nYOUR TASK: Do NOT paste raw chunks. Synthesize all streams into a single, seamless, polished Markdown Executive Brief with these clear sections:\n# Executive Dossier: Strategic & Market Intelligence\n## 1. Executive Summary & Core Verdict\n## 2. Financial Performance & Revenue Trajectory\n## 3. Market Sentiment & Media Highlights\n## 4. Competitive Positioning & Threat Analysis\n## 5. Talent Acquisition & Engineering Signals\n## 6. Strategic Recommendations & Action Items",
+            model_provider: "openai",
+            model_name: "openai/gpt-oss-20b:free",
             temperature: 0.7
           }
         }

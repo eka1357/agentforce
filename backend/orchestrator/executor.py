@@ -186,8 +186,11 @@ class GraphExecutor:
             merged_output = "\n\n---\n\n".join(
                 f"### {label}\n{val}" for label, val in upstream_inputs.items()
             )
-        else:
-            merged_output = json.dumps(upstream_inputs, indent=2)
+        else:  # default combine_dict
+            sections = []
+            for src_label, src_val in upstream_inputs.items():
+                sections.append(f"=== INTELLIGENCE STREAM: {src_label} ===\n{src_val}")
+            merged_output = "\n\n".join(sections)
 
         await self._emit_event("end", {
             "node_id": node.id,
