@@ -1,27 +1,35 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { GitFork, HelpCircle } from 'lucide-react';
+import { GitFork, HelpCircle, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useExecutionStore } from '../execution/useExecutionStore';
 
-export const ConditionNode = memo(({ data, selected }) => {
+export const ConditionNode = memo(({ id, data, selected }) => {
   const { label, config } = data;
   const expression = config?.expression || 'output.status == 200';
 
+  const nodeExecutionState = useExecutionStore((state) => state.nodeStates[id]);
+  const status = nodeExecutionState?.status || 'idle';
+
   return (
     <div
-      className={`relative group min-w-[200px] rounded-xl border bg-dark-800/90 backdrop-blur-md p-4 transition-all duration-200 shadow-xl ${
-        selected
-          ? 'border-brand-rose ring-2 ring-brand-rose/30 shadow-rose-500/10'
+      className={`relative group min-w-[200px] rounded-xl border bg-dark-800/95 backdrop-blur-md p-4 transition-all duration-200 shadow-xl ${
+        status === 'running'
+          ? 'border-rose-500 ring-2 ring-rose-500/50 shadow-rose-500/20'
+          : status === 'done'
+          ? 'border-emerald-500/80 ring-1 ring-emerald-500/30'
+          : status === 'error'
+          ? 'border-rose-500/80 ring-2 ring-rose-500/40'
+          : selected
+          ? 'border-brand-rose ring-2 ring-brand-rose/30'
           : 'border-white/10 hover:border-brand-rose/50'
       }`}
     >
-      {/* Target input handle */}
       <Handle
         type="target"
         position={Position.Left}
         className="!bg-brand-rose !w-3 !h-3 !border-2 !border-dark-900"
       />
 
-      {/* True/False output handles */}
       <Handle
         type="source"
         position={Position.Right}
@@ -57,9 +65,14 @@ export const ConditionNode = memo(({ data, selected }) => {
         </p>
       </div>
 
-      <div className="mt-2 text-[10px] flex justify-end gap-3 text-gray-400 font-mono">
-        <span className="text-emerald-400">● True</span>
-        <span className="text-rose-400">● False</span>
+      <div className="mt-2 text-[10px] flex justify-between items-center text-gray-400 font-mono">
+        <div className="flex gap-2">
+          <span className="text-emerald-400">● True</span>
+          <span className="text-rose-400">● False</span>
+        </div>
+
+        {status === 'running' && <Loader2 className="w-3 h-3 animate-spin text-rose-400" />}
+        {status === 'done' && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
       </div>
     </div>
   );

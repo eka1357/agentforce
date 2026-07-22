@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '../store/useWorkflowStore';
-import { Save, FolderOpen, Play, Trash2, Sparkles, Layers, CheckCircle2, Loader2, PlusCircle } from 'lucide-react';
+import { useExecutionStore } from '../execution/useExecutionStore';
+import { Save, FolderOpen, Play, Trash2, Sparkles, Layers, CheckCircle2, Loader2, Zap } from 'lucide-react';
 
 export const Header = () => {
   const {
+    workflowId,
     workflowName,
     workflowDescription,
+    nodes,
+    edges,
     setWorkflowMeta,
     saveCurrentWorkflow,
     isSaving,
@@ -15,6 +19,8 @@ export const Header = () => {
     savedWorkflows,
     loadWorkflowById,
   } = useWorkflowStore();
+
+  const { triggerRun, isExecuting, runStatus } = useExecutionStore();
 
   const [showWorkflowsMenu, setShowWorkflowsMenu] = useState(false);
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
@@ -27,6 +33,11 @@ export const Header = () => {
     await saveCurrentWorkflow();
     setIsSavedSuccess(true);
     setTimeout(() => setIsSavedSuccess(false), 2000);
+  };
+
+  const handleExecute = async () => {
+    const graphJson = { nodes, edges };
+    await triggerRun(workflowId, graphJson);
   };
 
   return (
@@ -55,12 +66,21 @@ export const Header = () => {
       {/* Center: Template & Load Quick Selectors */}
       <div className="flex items-center gap-2">
         <button
+          onClick={() => loadTemplate('simple-linear')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+          title="Load 2-Node Linear Pipeline"
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span>2-Node Linear</span>
+        </button>
+
+        <button
           onClick={() => loadTemplate('company-research')}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-500/10 text-brand-purple border border-brand-500/20 hover:bg-brand-500/20 transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-500/10 text-brand-purple border border-brand-500/20 hover:bg-brand-500/20 transition-all"
           title="Load Company Research Swarm Template"
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>Load Swarm Template</span>
+          <span>Research Swarm</span>
         </button>
 
         <div className="relative">
@@ -128,11 +148,27 @@ export const Header = () => {
         </button>
 
         <button
-          onClick={() => alert('Execution Engine will be initialized in Milestone 2! Visual Canvas MVP is fully active.')}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-600 to-brand-purple text-white shadow-lg shadow-brand-500/25 hover:brightness-110 active:scale-95 transition-all"
+          onClick={handleExecute}
+          disabled={isExecuting}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-all active:scale-95 ${
+            isExecuting
+              ? 'bg-amber-600 shadow-amber-500/25 animate-pulse'
+              : runStatus === 'completed'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/25 hover:brightness-110'
+              : 'bg-gradient-to-r from-brand-600 to-brand-purple shadow-brand-500/25 hover:brightness-110'
+          }`}
         >
-          <Play className="w-4 h-4 fill-current" />
-          <span>Execute Graph</span>
+          {isExecuting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+              <span>Executing DAG...</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 fill-current" />
+              <span>Execute Graph</span>
+            </>
+          )}
         </button>
       </div>
     </header>

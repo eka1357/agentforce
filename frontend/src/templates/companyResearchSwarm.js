@@ -14,7 +14,7 @@ export const COMPANY_RESEARCH_TEMPLATE = {
           config: {
             system_prompt: "You analyze company balance sheets, revenue growth, profit margins, and key financial ratios.",
             model_provider: "anthropic",
-            model_name: "claude-3-5-sonnet-20241022",
+            model_name: "meta-llama/llama-3.3-70b-instruct:free",
             temperature: 0.3
           }
         }
@@ -29,7 +29,7 @@ export const COMPANY_RESEARCH_TEMPLATE = {
           config: {
             system_prompt: "You gather recent press releases, media coverage, product launches, and market sentiment.",
             model_provider: "openai",
-            model_name: "gpt-4o",
+            model_name: "google/gemini-2.0-flash-exp:free",
             temperature: 0.5
           }
         }
@@ -44,7 +44,7 @@ export const COMPANY_RESEARCH_TEMPLATE = {
           config: {
             system_prompt: "You map out key market competitors, market share dynamics, and strategic positioning.",
             model_provider: "gemini",
-            model_name: "gemini-1.5-pro",
+            model_name: "qwen/qwen-2.5-72b-instruct:free",
             temperature: 0.4
           }
         }
@@ -85,7 +85,7 @@ export const COMPANY_RESEARCH_TEMPLATE = {
           config: {
             system_prompt: "You synthesize financial data, news, competitive intelligence, and hiring signals into a polished executive dossier.",
             model_provider: "anthropic",
-            model_name: "claude-3-5-sonnet-20241022",
+            model_name: "meta-llama/llama-3.3-70b-instruct:free",
             temperature: 0.7
           }
         }

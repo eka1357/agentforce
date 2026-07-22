@@ -1,17 +1,28 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Wrench, Server, Code } from 'lucide-react';
+import { Wrench, Server, Code, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useExecutionStore } from '../execution/useExecutionStore';
 
-export const ToolNode = memo(({ data, selected }) => {
+export const ToolNode = memo(({ id, data, selected }) => {
   const { label, config } = data;
   const server = config?.mcp_server || 'filesystem';
   const toolName = config?.tool_name || 'read_file';
 
+  const nodeExecutionState = useExecutionStore((state) => state.nodeStates[id]);
+  const status = nodeExecutionState?.status || 'idle';
+  const toolTrace = nodeExecutionState?.toolTrace;
+
   return (
     <div
-      className={`relative group min-w-[220px] rounded-xl border bg-dark-800/90 backdrop-blur-md p-4 transition-all duration-200 shadow-xl ${
-        selected
-          ? 'border-brand-amber ring-2 ring-brand-amber/30 shadow-amber-500/10'
+      className={`relative group min-w-[230px] rounded-xl border bg-dark-800/95 backdrop-blur-md p-4 transition-all duration-200 shadow-xl ${
+        status === 'running'
+          ? 'border-amber-500 ring-2 ring-amber-500/50 shadow-amber-500/20'
+          : status === 'done'
+          ? 'border-emerald-500/80 ring-1 ring-emerald-500/30'
+          : status === 'error'
+          ? 'border-rose-500/80 ring-2 ring-rose-500/40'
+          : selected
+          ? 'border-brand-amber ring-2 ring-brand-amber/30'
           : 'border-white/10 hover:border-brand-amber/50'
       }`}
     >
@@ -50,9 +61,32 @@ export const ToolNode = memo(({ data, selected }) => {
         </div>
       </div>
 
+      {/* Trace result preview */}
+      {toolTrace?.result && (
+        <div className="mt-2.5 p-2 bg-dark-900 rounded-lg text-[10px] font-mono text-gray-300 border border-white/10 truncate">
+          Result: {toolTrace.result}
+        </div>
+      )}
+
       <div className="mt-3 pt-2 border-t border-white/5 text-[10px] text-gray-400 flex items-center justify-between">
         <span>MCP Standard</span>
-        <span className="text-emerald-400 font-medium">Connected</span>
+
+        {status === 'idle' && <span className="text-gray-400 font-medium">⚪ Idle</span>}
+        {status === 'running' && (
+          <span className="text-amber-400 font-semibold flex items-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Executing...
+          </span>
+        )}
+        {status === 'done' && (
+          <span className="text-emerald-400 font-semibold flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Done
+          </span>
+        )}
+        {status === 'error' && (
+          <span className="text-rose-400 font-semibold flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3 text-rose-400" /> Error
+          </span>
+        )}
       </div>
     </div>
   );

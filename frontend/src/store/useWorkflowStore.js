@@ -2,13 +2,14 @@ import { create } from 'zustand';
 import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import { saveWorkflow as saveWorkflowApi, fetchWorkflow as fetchWorkflowApi, fetchWorkflows as fetchWorkflowsApi } from '../api/client';
 import { COMPANY_RESEARCH_TEMPLATE } from '../templates/companyResearchSwarm';
+import { SIMPLE_LINEAR_TEMPLATE } from '../templates/simpleLinearPipeline';
 
 export const useWorkflowStore = create((set, get) => ({
-  workflowId: 'default-workflow',
-  workflowName: 'Company Research Swarm',
-  workflowDescription: 'Visual multi-agent workflow',
-  nodes: COMPANY_RESEARCH_TEMPLATE.graph_json.nodes,
-  edges: COMPANY_RESEARCH_TEMPLATE.graph_json.edges,
+  workflowId: 'simple-linear-pipeline',
+  workflowName: 'Simple 2-Node Linear Pipeline',
+  workflowDescription: 'Sequential 2-agent pipeline: Writer -> Editor',
+  nodes: SIMPLE_LINEAR_TEMPLATE.graph_json.nodes,
+  edges: SIMPLE_LINEAR_TEMPLATE.graph_json.edges,
   selectedNodeId: null,
   isSaving: false,
   savedWorkflows: [],
@@ -139,17 +140,19 @@ export const useWorkflowStore = create((set, get) => ({
 
   // Templates
   loadTemplate: (templateKey) => {
+    let tpl = SIMPLE_LINEAR_TEMPLATE;
     if (templateKey === 'company-research') {
-      const tpl = COMPANY_RESEARCH_TEMPLATE;
-      set({
-        workflowId: tpl.id,
-        workflowName: tpl.name,
-        workflowDescription: tpl.description,
-        nodes: tpl.graph_json.nodes,
-        edges: tpl.graph_json.edges,
-        selectedNodeId: null
-      });
+      tpl = COMPANY_RESEARCH_TEMPLATE;
     }
+
+    set({
+      workflowId: tpl.id,
+      workflowName: tpl.name,
+      workflowDescription: tpl.description,
+      nodes: tpl.graph_json.nodes,
+      edges: tpl.graph_json.edges,
+      selectedNodeId: null
+    });
   },
 
   clearCanvas: () => {

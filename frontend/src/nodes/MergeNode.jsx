@@ -1,16 +1,26 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Layers, Combine } from 'lucide-react';
+import { Layers, Combine, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useExecutionStore } from '../execution/useExecutionStore';
 
-export const MergeNode = memo(({ data, selected }) => {
+export const MergeNode = memo(({ id, data, selected }) => {
   const { label, config } = data;
   const strategy = config?.merge_strategy || 'combine_dict';
 
+  const nodeExecutionState = useExecutionStore((state) => state.nodeStates[id]);
+  const status = nodeExecutionState?.status || 'idle';
+
   return (
     <div
-      className={`relative group min-w-[200px] rounded-xl border bg-dark-800/90 backdrop-blur-md p-4 transition-all duration-200 shadow-xl ${
-        selected
-          ? 'border-brand-purple ring-2 ring-brand-purple/30 shadow-purple-500/10'
+      className={`relative group min-w-[200px] rounded-xl border bg-dark-800/95 backdrop-blur-md p-4 transition-all duration-200 shadow-xl ${
+        status === 'running'
+          ? 'border-purple-500 ring-2 ring-purple-500/50 shadow-purple-500/20'
+          : status === 'done'
+          ? 'border-emerald-500/80 ring-1 ring-emerald-500/30'
+          : status === 'error'
+          ? 'border-rose-500/80 ring-2 ring-rose-500/40'
+          : selected
+          ? 'border-brand-purple ring-2 ring-brand-purple/30'
           : 'border-white/10 hover:border-brand-purple/50'
       }`}
     >
@@ -42,9 +52,25 @@ export const MergeNode = memo(({ data, selected }) => {
         </div>
       </div>
 
-      <div className="mt-3 pt-2 border-t border-white/5 text-[10px] text-gray-400 flex justify-between">
+      <div className="mt-3 pt-2 border-t border-white/5 text-[10px] text-gray-400 flex justify-between items-center">
         <span>Parallel Fan-in</span>
-        <span className="text-purple-400 font-medium">Join</span>
+
+        {status === 'idle' && <span className="text-gray-400 font-medium">⚪ Idle</span>}
+        {status === 'running' && (
+          <span className="text-purple-400 font-semibold flex items-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin text-purple-400" /> Merging...
+          </span>
+        )}
+        {status === 'done' && (
+          <span className="text-emerald-400 font-semibold flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Joined
+          </span>
+        )}
+        {status === 'error' && (
+          <span className="text-rose-400 font-semibold flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3 text-rose-400" /> Error
+          </span>
+        )}
       </div>
     </div>
   );

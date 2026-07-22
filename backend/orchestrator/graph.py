@@ -43,3 +43,28 @@ class GraphEdge(BaseModel):
 class GraphDefinition(BaseModel):
     nodes: List[GraphNode] = Field(default_factory=list)
     edges: List[GraphEdge] = Field(default_factory=list)
+
+    def get_node(self, node_id: str) -> Optional[GraphNode]:
+        for node in self.nodes:
+            if node.id == node_id:
+                return node
+        return None
+
+    def get_incoming_edges(self, node_id: str) -> List[GraphEdge]:
+        return [edge for edge in self.edges if edge.target == node_id]
+
+    def get_outgoing_edges(self, node_id: str) -> List[GraphEdge]:
+        return [edge for edge in self.edges if edge.source == node_id]
+
+    def get_in_degrees(self) -> Dict[str, int]:
+        degrees = {node.id: 0 for node in self.nodes}
+        for edge in self.edges:
+            if edge.target in degrees:
+                degrees[edge.target] += 1
+        return degrees
+
+    def get_parent_ids(self, node_id: str) -> List[str]:
+        return [edge.source for edge in self.get_incoming_edges(node_id)]
+
+    def get_child_ids(self, node_id: str) -> List[str]:
+        return [edge.target for edge in self.get_outgoing_edges(node_id)]
